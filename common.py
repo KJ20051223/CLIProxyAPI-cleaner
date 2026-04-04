@@ -18,6 +18,7 @@ CLEANER_SERVICE = 'CLIProxyAPI-cleaner.service'
 WEB_SERVICE = 'CLIProxyAPI-cleaner-web.service'
 CONTROL_MODE = os.environ.get('CLIPROXY_CONTROL_MODE', 'systemctl').strip().lower() or 'systemctl'
 SUPERVISORCTL_BIN = os.environ.get('CLIPROXY_SUPERVISORCTL_BIN', 'supervisorctl').strip() or 'supervisorctl'
+SUPERVISORCTL_CONFIG = os.environ.get('CLIPROXY_SUPERVISORCTL_CONFIG', '').strip()
 SUPERVISOR_CLEANER_NAME = os.environ.get('CLIPROXY_SUPERVISOR_CLEANER_NAME', 'cleaner').strip() or 'cleaner'
 SUPERVISOR_WEB_NAME = os.environ.get('CLIPROXY_SUPERVISOR_WEB_NAME', 'web').strip() or 'web'
 COOKIE_NAME = 'pcw_session'
@@ -46,8 +47,8 @@ DEFAULT_CONFIG = {
     'api_call_sleep_max': 10.0,
     'revival_wait_days': 7,
     'revival_probe_interval_hours': 12,
-    'password_salt': 'dbc9427570ea1646b857e00cb16e76c3',
-    'password_hash': '256a47cde3c93b2c5d9d839346af5157930d4fdf86debecf1b979033d365b2c4',
+    'password_salt': '',
+    'password_hash': '',
 }
 
 BOOL_FIELDS = {'enable_api_call_check'}
@@ -63,6 +64,7 @@ FLOAT_FIELDS = {
 }
 ALLOWED_METHODS = {'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'}
 _CONTROL_CHARS = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
+_HEX_RE = re.compile(r'^[0-9a-f]+$', re.I)
 
 
 def ensure_app_dirs() -> None:
@@ -134,6 +136,25 @@ def hash_console_password(password: str) -> tuple[str, str]:
     return salt, digest.hex()
 
 
+def is_console_password_configured(config: dict) -> bool:
+    salt = str(config.get('password_salt', '') or '').strip()
+    digest = str(config.get('password_hash', '') or '').strip()
+    return len(salt) == 32 and len(digest) == 64 and bool(_HEX_RE.fullmatch(salt)) and bool(_HEX_RE.fullmatch(digest))
+
+
+def build_supervisorctl_command(*args: str) -> list[str]:
+    cmd = [SUPERVISORCTL_BIN]
+    config_path = SUPERVISORCTL_CONFIG
+    if not config_path and CONTROL_MODE == 'supervisor':
+        bundled_config = APP_DIR / 'docker' / 'supervisord.conf'
+        if bundled_config.exists():
+            config_path = str(bundled_config)
+    if config_path:
+        cmd.extend(['-c', config_path])
+    cmd.extend(args)
+    return cmd
+
+
 def sanitize_config_for_ui(config: dict) -> dict:
     return {
         'base_url': config.get('base_url', ''),
@@ -152,6 +173,7 @@ def sanitize_config_for_ui(config: dict) -> dict:
         'revival_probe_interval_hours': config.get('revival_probe_interval_hours', 12),
         'management_key_masked': mask_secret(config.get('management_key', '')),
         'management_key_configured': bool(str(config.get('management_key', '')).strip()),
+        'console_password_configured': is_console_password_configured(config),
     }
 
 

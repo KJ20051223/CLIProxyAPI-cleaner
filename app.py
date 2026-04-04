@@ -29,7 +29,9 @@ from common import (
     SUPERVISOR_CLEANER_NAME,
     SUPERVISOR_WEB_NAME,
     build_cleaner_command,
+    build_supervisorctl_command,
     ensure_app_dirs,
+    is_console_password_configured,
     load_config,
     save_config,
     sanitize_config_for_ui,
@@ -211,7 +213,7 @@ def systemctl(*args: str) -> tuple[int, str]:
 
 
 def supervisorctl(*args: str) -> tuple[int, str]:
-    return run_command([SUPERVISORCTL_BIN, *args])
+    return run_command(build_supervisorctl_command(*args))
 
 
 def control_target_name(target: str) -> str:
@@ -340,6 +342,8 @@ def handle_login(environ, start_response):
     body = parse_form_body(environ)
     password = body.get('password', '')
     config = load_config()
+    if not is_console_password_configured(config):
+        raise AppError('password_not_configured', '控制台密码尚未配置，请先写入 password_salt / password_hash 或在面板中设置新密码', '503 Service Unavailable')
     actual = pbkdf2_hex(password, config['password_salt'])
     if not secure_compare(actual, config['password_hash']):
         record_failed_login(ip)
@@ -407,7 +411,8 @@ def handle_service_action(environ, start_response, action: str):
 
     if CONTROL_MODE == 'supervisor':
         if target == 'web' and action == 'restart':
-            cmd = f"sleep 1; {shlex.quote(SUPERVISORCTL_BIN)} restart {shlex.quote(service)} >/tmp/cliproxyapi-web-restart.log 2>&1"
+            quoted_cmd = ' '.join(shlex.quote(part) for part in build_supervisorctl_command('restart', service))
+            cmd = f"sleep 1; {quoted_cmd} >/tmp/cliproxyapi-web-restart.log 2>&1"
             subprocess.Popen(['sh', '-lc', cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             code, output = 0, 'web restart scheduled'
         else:

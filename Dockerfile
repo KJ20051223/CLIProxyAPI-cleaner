@@ -14,6 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CLIPROXY_BACKUP_ROOT=/data/backups/cliproxyapi-auth-cleaner \
     CLIPROXY_CONTROL_MODE=supervisor \
     CLIPROXY_SUPERVISORCTL_BIN=/usr/bin/supervisorctl \
+    CLIPROXY_SUPERVISORCTL_CONFIG=/app/docker/supervisord.conf \
     CLIPROXY_SUPERVISOR_CLEANER_NAME=cleaner \
     CLIPROXY_SUPERVISOR_WEB_NAME=web \
     CLIPROXY_COOKIE_SECURE=false

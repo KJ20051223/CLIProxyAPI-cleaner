@@ -243,6 +243,8 @@ CLIPROXY_COOKIE_SECURE: "true"
 
 3. `CLIPROXY_ALLOWED_HOSTS` defaults to `*` for easier first boot; for real deployment, tighten it to your own hostnames or IPs.
 4. The cleaner process checks whether `web_config.json` already contains real `base_url / management_key` values. If the config is still placeholder-only, it waits instead of running cleanup logic.
+5. In Docker mode, the dashboard now calls `supervisorctl` with `/app/docker/supervisord.conf` explicitly, so it will not fall back to `/var/run/supervisor.sock`.
+6. If `password_salt / password_hash` are still unset, the login API now returns a clear configuration error instead of crashing with HTTP 500.
 
 ## Security notes
 

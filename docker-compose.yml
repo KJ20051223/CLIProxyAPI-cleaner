@@ -16,5 +16,6 @@ services:
       CLIPROXY_BACKUP_ROOT: "/data/backups/cliproxyapi-auth-cleaner"
       CLIPROXY_WEB_LOG_PATH: "/data/logs/web.log"
       CLIPROXY_CLEANER_LOG_PATH: "/data/logs/CLIProxyAPI-cleaner.log"
+      CLIPROXY_SUPERVISORCTL_CONFIG: "/app/docker/supervisord.conf"
     volumes:
       - ./docker-data:/data

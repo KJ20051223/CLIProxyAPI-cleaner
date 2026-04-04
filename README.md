@@ -323,6 +323,8 @@ CLIPROXY_COOKIE_SECURE: "true"
 
 3. `CLIPROXY_ALLOWED_HOSTS` 默认是 `*`，为了方便首次启动；正式使用时建议收紧成你自己的域名或 IP。
 4. cleaner 容器启动后会先检查 `web_config.json` 是否已经填了真实的 `base_url / management_key`；如果还是示例值，会先等待，不会真的跑清理逻辑。
+5. Docker 模式下控制台现在会显式使用 `/app/docker/supervisord.conf` 调 `supervisorctl`，避免误连系统默认的 `/var/run/supervisor.sock`。
+6. 如果 `password_salt / password_hash` 还没配置，登录接口会明确返回“控制台密码尚未配置”，不再抛 500。
 
 ---
 
