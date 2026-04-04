@@ -8,19 +8,17 @@ import shlex
 import subprocess
 import time
 from collections import deque
+from http import cookies
 from pathlib import Path
 from urllib.parse import parse_qs, unquote
 from wsgiref.simple_server import make_server
-from http import cookies
 
 from common import (
-    APP_DIR,
     STATIC_DIR,
     CLEANER_LOG_PATH,
     WEB_LOG_PATH,
     REPORT_DIR,
     COOKIE_NAME,
-    COOKIE_PATH,
     PASSWORD_PBKDF2_ITERATIONS,
     CLEANER_SERVICE,
     WEB_SERVICE,
@@ -43,6 +41,7 @@ LOG_TAIL_LINES = 200
 MAX_FAILED_ATTEMPTS = 8
 FAILED_WINDOW_SECONDS = 10 * 60
 LOCKOUT_SECONDS = 15 * 60
+KNOWN_BASE_PATHS = ('/CLIProxyAPI-cleaner', '/proxy-cleaner')
 
 FAILED_LOGIN = deque()
 SESSIONS: dict[str, dict] = {}
@@ -98,7 +97,7 @@ def record_failed_login(ip: str) -> None:
 
 
 def create_session(ip: str) -> str:
-    token = __import__('os').urandom(24).hex()
+    token = os.urandom(24).hex()
     SESSIONS[token] = {'ip': ip, 'created_at': now_ts(), 'expires_at': now_ts() + SESSION_TTL_SECONDS}
     return token
 
@@ -160,6 +159,16 @@ def text_response(start_response, text: str, status: str = '200 OK', content_typ
     if headers:
         base_headers.extend(headers)
     start_response(status, base_headers)
+    return [body]
+
+
+def redirect_response(start_response, location: str):
+    body = b''
+    start_response('302 Found', [
+        ('Location', location),
+        ('Content-Length', '0'),
+        ('Cache-Control', 'no-store'),
+    ])
     return [body]
 
 
@@ -229,6 +238,21 @@ def control_target_name(target: str) -> str:
     if target == 'web':
         return SUPERVISOR_WEB_NAME if CONTROL_MODE == 'supervisor' else WEB_SERVICE
     raise AppError('bad_target', '不支持的服务目标')
+
+
+def resolve_base_path(path: str) -> tuple[str | None, str]:
+    for base in KNOWN_BASE_PATHS:
+        if path == base:
+            return base, ''
+        if path == f'{base}/':
+            return base, '/'
+        if path.startswith(f'{base}/'):
+            return base, path[len(base):]
+    return None, path
+
+
+def cookie_path_for(base_path: str) -> str:
+    return f'{base_path}/'
 
 
 def read_tail(path: Path, limit_lines: int = LOG_TAIL_LINES) -> str:
@@ -340,7 +364,7 @@ def build_status_payload() -> dict:
     }
 
 
-def handle_login(environ, start_response):
+def handle_login(environ, start_response, base_path: str):
     if environ.get('REQUEST_METHOD') != 'POST':
         raise AppError('method_not_allowed', '方法不允许', '405 Method Not Allowed')
     ip = client_ip(environ)
@@ -362,12 +386,12 @@ def handle_login(environ, start_response):
     cookie[COOKIE_NAME]['httponly'] = True
     cookie[COOKIE_NAME]['secure'] = COOKIE_SECURE
     cookie[COOKIE_NAME]['samesite'] = 'Strict'
-    cookie[COOKIE_NAME]['path'] = COOKIE_PATH
+    cookie[COOKIE_NAME]['path'] = cookie_path_for(base_path)
     cookie[COOKIE_NAME]['max-age'] = str(SESSION_TTL_SECONDS)
     return json_response(start_response, {'ok': True}, headers=[('Set-Cookie', cookie.output(header='').strip())])
 
 
-def handle_logout(environ, start_response):
+def handle_logout(environ, start_response, base_path: str):
     token, _ = get_session(environ)
     if token:
         SESSIONS.pop(token, None)
@@ -376,7 +400,7 @@ def handle_logout(environ, start_response):
     cookie[COOKIE_NAME]['httponly'] = True
     cookie[COOKIE_NAME]['secure'] = COOKIE_SECURE
     cookie[COOKIE_NAME]['samesite'] = 'Strict'
-    cookie[COOKIE_NAME]['path'] = COOKIE_PATH
+    cookie[COOKIE_NAME]['path'] = cookie_path_for(base_path)
     cookie[COOKIE_NAME]['max-age'] = '0'
     return json_response(start_response, {'ok': True}, headers=[('Set-Cookie', cookie.output(header='').strip())])
 
@@ -461,33 +485,39 @@ def application(environ, start_response):
     if host and '*' not in allowed_hosts and host not in allowed_hosts:
         return json_response(start_response, {'ok': False, 'error': 'forbidden_host'}, status='403 Forbidden')
 
+    base_path, subpath = resolve_base_path(path)
+    if base_path is None:
+        return json_response(start_response, {'ok': False, 'error': 'not_found'}, status='404 Not Found')
+
     try:
-        if path in ('/CLIProxyAPI-cleaner', '/CLIProxyAPI-cleaner/'):
+        if subpath == '':
+            return redirect_response(start_response, f'{base_path}/')
+        if subpath == '/':
             html, content_type = load_static('index.html', 'text/html; charset=utf-8')
             return text_response(start_response, html, content_type=content_type)
-        if path == '/CLIProxyAPI-cleaner/app.js':
+        if subpath == '/app.js':
             js, content_type = load_static('app.js', 'application/javascript; charset=utf-8')
             return text_response(start_response, js, content_type=content_type)
-        if path == '/CLIProxyAPI-cleaner/styles.css':
+        if subpath == '/styles.css':
             css, content_type = load_static('styles.css', 'text/css; charset=utf-8')
             return text_response(start_response, css, content_type=content_type)
-        if path == '/CLIProxyAPI-cleaner/api/login':
-            return handle_login(environ, start_response)
-        if path == '/CLIProxyAPI-cleaner/api/logout':
-            return handle_logout(environ, start_response)
-        if path == '/CLIProxyAPI-cleaner/api/status':
+        if subpath == '/api/login':
+            return handle_login(environ, start_response, base_path)
+        if subpath == '/api/logout':
+            return handle_logout(environ, start_response, base_path)
+        if subpath == '/api/status':
             return handle_status(environ, start_response)
-        if path == '/CLIProxyAPI-cleaner/api/report':
+        if subpath == '/api/report':
             return handle_report_detail(environ, start_response)
-        if path == '/CLIProxyAPI-cleaner/api/config/save':
+        if subpath == '/api/config/save':
             return handle_save_config(environ, start_response)
-        if path == '/CLIProxyAPI-cleaner/api/service/start':
+        if subpath == '/api/service/start':
             return handle_service_action(environ, start_response, 'start')
-        if path == '/CLIProxyAPI-cleaner/api/service/stop':
+        if subpath == '/api/service/stop':
             return handle_service_action(environ, start_response, 'stop')
-        if path == '/CLIProxyAPI-cleaner/api/service/restart':
+        if subpath == '/api/service/restart':
             return handle_service_action(environ, start_response, 'restart')
-        if path == '/CLIProxyAPI-cleaner/api/run-once':
+        if subpath == '/api/run-once':
             return handle_run_once(environ, start_response)
         return json_response(start_response, {'ok': False, 'error': 'not_found'}, status='404 Not Found')
     except AppError as e:
