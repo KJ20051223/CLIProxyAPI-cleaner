@@ -164,6 +164,10 @@ systemctl daemon-reload
 - Keep `allowed_hosts` strict
 - Prefer binding to `127.0.0.1` and exposing only via Nginx
 
+## Acknowledgements
+
+Special thanks to LinuxDo contributor [@jingtai123](https://linux.do/t/topic/1810923). This project is a further derivative / secondary development based on that script direction.
+
 ## License
 
 This project is licensed under the **MIT License**. See `LICENSE` for details.

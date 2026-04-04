@@ -264,6 +264,10 @@ systemctl restart CLIProxyAPI-cleaner.service
 - `app.py` 是否在跑
 - 反代后有没有多余的路径重写
 
+## 致谢
+
+感谢 LinuxDo 佬友 [@jingtai123](https://linux.do/t/topic/1810923)，本项目基于其相关脚本思路继续二开整理。
+
 ## License
 
 本项目采用 **MIT License**。
