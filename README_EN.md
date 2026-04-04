@@ -170,7 +170,7 @@ systemctl daemon-reload
 
 ## How to adapt other auth file formats / providers
 
-The current repository provides its most complete implementation for **codex / openai / chatgpt** style auth files, especially for the “quota exhausted -> refresh -> revival probe” flow. That flow currently assumes:
+The current repository provides its most complete implementation **with codex auth files as the main example**, especially for the “quota exhausted -> refresh -> revival probe” flow. That flow currently assumes:
 
 - the local auth file is a JSON object
 - a `refresh_token` is available
@@ -246,7 +246,7 @@ A stable way to adapt a new provider is:
 
 In short:
 
-> this repository is not limited to codex only, but the most complete built-in implementation is currently centered on codex / openai / chatgpt style auth files.
+> this repository is not limited to codex only, but the most complete built-in implementation is currently written with codex auth files as the main example.
 > For other auth file formats, the main adaptation layers are **classification, headers, file structure, refresh, and revival**.
 
 ## Acknowledgements

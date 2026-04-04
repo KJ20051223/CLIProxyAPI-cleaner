@@ -270,7 +270,7 @@ systemctl restart CLIProxyAPI-cleaner.service
 
 ## 如何适配别的认证文件 / provider
 
-当前仓库里默认实现，主要是围绕 **codex / openai / chatgpt** 这类认证文件来写的，尤其是“额度号后续 refresh + 复活探测”这一段，默认依赖以下前提：
+当前仓库里默认实现，主要是**以 codex 认证文件为例**来写的，尤其是“额度号后续 refresh + 复活探测”这一段，默认依赖以下前提：
 
 - 本地 auth-file 是 JSON 对象
 - 文件里能拿到 `refresh_token`
@@ -361,7 +361,7 @@ systemctl restart CLIProxyAPI-cleaner.service
 
 简单说：
 
-> 这个仓库不是只能支持 codex，但当前“最完整的一套实现”确实是以 codex / openai / chatgpt 这类 auth-file 为例。
+> 这个仓库不是只能支持 codex，但当前“最完整的一套实现”是**以 codex 认证文件为例**来写的。
 > 如果换别的认证文件，重点是改 **分类、请求头、文件结构、refresh、revival** 这几层。
 
 ## 致谢
