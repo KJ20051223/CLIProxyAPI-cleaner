@@ -148,8 +148,6 @@ cp web_config.example.json web_config.json
 - `allowed_hosts`：允许访问控制台的 Host 白名单
 - `password_salt` / `password_hash`：控制台登录密码
 
-> 仓库里**故意不提交**真正的 `web_config.json`，避免把线上敏感配置带出去。
-
 ## 5）安装 systemd 服务
 
 ```bash
