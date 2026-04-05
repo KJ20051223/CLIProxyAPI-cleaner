@@ -1,6 +1,6 @@
 services:
   cliproxyapi-cleaner:
-    image: ${CLIPROXY_IMAGE:-docker.io/your-dockerhub-user/cliproxyapi-cleaner:latest}
+    image: ${CLIPROXY_IMAGE:-docker.io/kxmjj/cliproxyapi-cleaner:latest}
     pull_policy: always
     container_name: cliproxyapi-cleaner
     restart: unless-stopped

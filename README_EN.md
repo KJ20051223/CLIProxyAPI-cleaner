@@ -216,7 +216,7 @@ docker compose up -d
 Default image:
 
 ```text
-docker.io/KJ20051223/cliproxyapi-cleaner:latest
+docker.io/kxmjj/cliproxyapi-cleaner:latest
 ```
 
 If you want to use your own image instead, set this before startup:
@@ -264,7 +264,7 @@ You only need to add these **Actions Secrets** in GitHub:
 Optionally add this **Actions Variable**:
 
 - `DOCKERHUB_IMAGE`
-  - for example: `docker.io/KJ20051223/cliproxyapi-cleaner`
+  - for example: `docker.io/kxmjj/cliproxyapi-cleaner`
 
 Default behavior:
 
