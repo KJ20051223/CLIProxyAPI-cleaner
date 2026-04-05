@@ -304,7 +304,7 @@ docker compose up -d
 默认会拉取：
 
 ```text
-docker.io/KJ20051223/cliproxyapi-cleaner:latest
+docker.io/your-dockerhub-user/cliproxyapi-cleaner:latest
 ```
 
 如果你想改成自己的镜像地址，可以在启动前设置：
