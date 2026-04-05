@@ -263,21 +263,6 @@ docker.io/kxmjj/cliproxyapi-cleaner:latest
 The default `docker-compose.yml` already points to this image.
 If you only want to deploy it, you do not need to care about the auto-publish details.
 
-### Maintainer note: auto-publish
-
-The repository includes a GitHub Actions workflow: `.github/workflows/docker-publish.yml`.
-
-For repository maintenance:
-
-- push to `main` -> publish `latest`, `main`, and `sha-*`
-- push a tag (for example `v1.0.0`) -> publish version tags
-
-If you want to change the Docker Hub target later, use:
-
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
-- `DOCKERHUB_IMAGE` (optional)
-
 ### Default data directory
 
 Compose persists these files into `./docker-data`:

@@ -351,23 +351,6 @@ docker.io/kxmjj/cliproxyapi-cleaner:latest
 默认 `docker-compose.yml` 也已经配置成优先拉这个镜像。
 如果你只是部署使用，到这里就够了，不需要关心镜像是怎么自动发布的。
 
-### 给维护者看的：自动发布说明
-
-仓库里带了 GitHub Actions 工作流：`.github/workflows/docker-publish.yml`。
-
-维护仓库时：
-
-- push 到 `main` → 自动推送 `latest`、`main`、`sha-*`
-- push tag（如 `v1.0.0`）→ 自动推送版本标签
-
-如果你以后换 Docker Hub 仓库，可以通过：
-
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
-- `DOCKERHUB_IMAGE`（可选）
-
-来调整发布目标。
-
 ### 默认数据目录
 
 Compose 默认把这些东西持久化到 `./docker-data`：
