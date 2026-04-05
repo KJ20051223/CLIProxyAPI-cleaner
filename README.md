@@ -12,8 +12,10 @@
 - `app.py`：轻量 Web 后端，负责登录、状态查询、保存配置、控制 systemd、查看报告
 - `common.py`：配置加载、校验、命令拼装
 - `run_cleaner.py`：读取 `web_config.json` 并按当前配置启动 cleaner
+- `cleanup_retention.py`：独立的文件保留清理脚本，负责清理旧报告/备份并裁剪日志
 - `CLIProxyAPI-cleaner.service`：后台清理服务
 - `CLIProxyAPI-cleaner-web.service`：控制台服务
+- `CLIProxyAPI-cleaner-retention.service` / `.timer`：定时文件清理服务与定时器
 - `static/`：前端页面
 - `web_config.example.json`：公开版示例配置
 
@@ -25,6 +27,7 @@
 - 一键执行 dry-run
 - 查看 cleaner / web 日志
 - 查看最近报告（默认前 5 个）
+- 定时清理旧报告、旧备份，并自动裁剪过大的日志文件
 - 登录限流、Host 白名单、Cookie 安全属性
 - 支持 Docker / Docker Compose 部署
 
@@ -48,8 +51,11 @@
 ├── app.py
 ├── common.py
 ├── run_cleaner.py
+├── cleanup_retention.py
 ├── CLIProxyAPI-cleaner.service
 ├── CLIProxyAPI-cleaner-web.service
+├── CLIProxyAPI-cleaner-retention.service
+├── CLIProxyAPI-cleaner-retention.timer
 ├── web_config.example.json
 ├── static/
 │   ├── index.html
@@ -159,14 +165,30 @@ cp web_config.example.json web_config.json
 - `allowed_hosts`：允许访问控制台的 Host 白名单
 - `password_salt` / `password_hash`：控制台登录密码
 
-## 5）安装 systemd 服务
+## 5）安装 systemd 服务与文件清理定时器
 
 ```bash
 cp CLIProxyAPI-cleaner.service /etc/systemd/system/CLIProxyAPI-cleaner.service
 cp CLIProxyAPI-cleaner-web.service /etc/systemd/system/CLIProxyAPI-cleaner-web.service
+cp CLIProxyAPI-cleaner-retention.service /etc/systemd/system/CLIProxyAPI-cleaner-retention.service
+cp CLIProxyAPI-cleaner-retention.timer /etc/systemd/system/CLIProxyAPI-cleaner-retention.timer
 systemctl daemon-reload
 systemctl enable CLIProxyAPI-cleaner.service CLIProxyAPI-cleaner-web.service
+systemctl enable --now CLIProxyAPI-cleaner-retention.timer
 ```
+
+默认保留策略：
+
+- 报告：最多保留最近 `200` 份，同时删除 `7` 天前的旧报告
+- 备份：删除 `14` 天前的旧备份，并顺手清掉空目录
+- 日志：`/root/CLIProxyAPI-cleaner.log` 和 `web.log` 超过 `50MB` 时自动裁剪，只保留最近内容
+
+如果你想调整这些值，可以直接编辑：
+
+- `CLIPROXY_KEEP_REPORTS`
+- `CLIPROXY_REPORT_MAX_AGE_DAYS`
+- `CLIPROXY_BACKUP_MAX_AGE_DAYS`
+- `CLIPROXY_LOG_MAX_SIZE_MB`
 
 ## 6）配置 Nginx 反代
 
@@ -206,6 +228,7 @@ systemctl restart CLIProxyAPI-cleaner.service
 ```bash
 systemctl status CLIProxyAPI-cleaner-web.service --no-pager
 systemctl status CLIProxyAPI-cleaner.service --no-pager
+systemctl status CLIProxyAPI-cleaner-retention.timer --no-pager
 ```
 
 看日志：
@@ -234,6 +257,7 @@ cd /opt/CLIProxyAPI-cleaner
 git pull
 systemctl restart CLIProxyAPI-cleaner-web.service
 systemctl restart CLIProxyAPI-cleaner.service
+systemctl restart CLIProxyAPI-cleaner-retention.timer
 ```
 
 如果更新中改了 service 文件，记得再执行：
@@ -323,6 +347,7 @@ CLIPROXY_COOKIE_SECURE: "true"
 
 3. `CLIPROXY_ALLOWED_HOSTS` 默认是 `*`，为了方便首次启动；正式使用时建议收紧成你自己的域名或 IP。
 4. cleaner 容器启动后会先检查 `web_config.json` 是否已经填了真实的 `base_url / management_key`；如果还是示例值，会先等待，不会真的跑清理逻辑。
+5. `cleanup_retention.py` 也会一并打进镜像；如果你用 Docker，建议在宿主机加 cron / timer，或手动执行它做报告/备份/日志保留清理。
 
 ---
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run CLIProxyAPI-cleaner artifact retention cleanup every 6 hours
+
+[Timer]
+OnBootSec=15m
+OnUnitActiveSec=6h
+Persistent=true
+Unit=CLIProxyAPI-cleaner-retention.service
+
+[Install]
+WantedBy=timers.target

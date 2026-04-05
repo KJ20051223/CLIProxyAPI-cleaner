@@ -1,0 +1,17 @@
+[Unit]
+Description=CLIProxyAPI-cleaner artifact retention cleanup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/CLIProxyAPI-cleaner
+Environment=CLIPROXY_KEEP_REPORTS=200
+Environment=CLIPROXY_REPORT_MAX_AGE_DAYS=7
+Environment=CLIPROXY_BACKUP_MAX_AGE_DAYS=14
+Environment=CLIPROXY_LOG_MAX_SIZE_MB=50
+ExecStart=/usr/bin/python3 /opt/CLIProxyAPI-cleaner/cleanup_retention.py
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/root /var/log /tmp /opt/CLIProxyAPI-cleaner

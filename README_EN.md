@@ -12,8 +12,10 @@ The repository homepage defaults to Chinese. If you prefer Chinese, use the link
 - `app.py`: lightweight web backend for login, status, config save, systemd control, and report viewing
 - `common.py`: shared config loading, validation, and command building
 - `run_cleaner.py`: launches the cleaner using the current `web_config.json`
+- `cleanup_retention.py`: standalone retention cleanup for old reports/backups and oversized logs
 - `CLIProxyAPI-cleaner.service`: background cleaner service
 - `CLIProxyAPI-cleaner-web.service`: web console service
+- `CLIProxyAPI-cleaner-retention.service` / `.timer`: periodic artifact cleanup service and timer
 - `static/`: frontend files
 - `web_config.example.json`: public example config
 
@@ -25,6 +27,7 @@ The repository homepage defaults to Chinese. If you prefer Chinese, use the link
 - One-click dry-run
 - Cleaner / web log viewing
 - Recent report summaries
+- Periodic cleanup for old reports/backups plus automatic log trimming
 - Rate-limited login, host allowlist, secure cookie settings
 - Docker / Docker Compose deployment support
 
@@ -85,14 +88,30 @@ Edit it for your environment, especially:
 - `allowed_hosts`
 - `password_salt` / `password_hash`
 
-### 5. Install systemd units
+### 5. Install systemd services and the retention timer
 
 ```bash
 cp CLIProxyAPI-cleaner.service /etc/systemd/system/CLIProxyAPI-cleaner.service
 cp CLIProxyAPI-cleaner-web.service /etc/systemd/system/CLIProxyAPI-cleaner-web.service
+cp CLIProxyAPI-cleaner-retention.service /etc/systemd/system/CLIProxyAPI-cleaner-retention.service
+cp CLIProxyAPI-cleaner-retention.timer /etc/systemd/system/CLIProxyAPI-cleaner-retention.timer
 systemctl daemon-reload
 systemctl enable CLIProxyAPI-cleaner.service CLIProxyAPI-cleaner-web.service
+systemctl enable --now CLIProxyAPI-cleaner-retention.timer
 ```
+
+Default retention policy:
+
+- Reports: keep the latest `200`, and also delete anything older than `7` days
+- Backups: delete anything older than `14` days and remove empty directories
+- Logs: trim `/root/CLIProxyAPI-cleaner.log` and `web.log` back to the latest `50MB` when they grow too large
+
+If you want to tune it, edit these environment variables in `CLIProxyAPI-cleaner-retention.service`:
+
+- `CLIPROXY_KEEP_REPORTS`
+- `CLIPROXY_REPORT_MAX_AGE_DAYS`
+- `CLIPROXY_BACKUP_MAX_AGE_DAYS`
+- `CLIPROXY_LOG_MAX_SIZE_MB`
 
 ### 6. Configure Nginx
 
@@ -132,6 +151,7 @@ systemctl restart CLIProxyAPI-cleaner.service
 ```bash
 systemctl status CLIProxyAPI-cleaner-web.service --no-pager
 systemctl status CLIProxyAPI-cleaner.service --no-pager
+systemctl status CLIProxyAPI-cleaner-retention.timer --no-pager
 ```
 
 Logs:
@@ -154,6 +174,7 @@ cd /opt/CLIProxyAPI-cleaner
 git pull
 systemctl restart CLIProxyAPI-cleaner-web.service
 systemctl restart CLIProxyAPI-cleaner.service
+systemctl restart CLIProxyAPI-cleaner-retention.timer
 ```
 
 If unit files changed, also run:
@@ -243,6 +264,7 @@ CLIPROXY_COOKIE_SECURE: "true"
 
 3. `CLIPROXY_ALLOWED_HOSTS` defaults to `*` for easier first boot; for real deployment, tighten it to your own hostnames or IPs.
 4. The cleaner process checks whether `web_config.json` already contains real `base_url / management_key` values. If the config is still placeholder-only, it waits instead of running cleanup logic.
+5. `cleanup_retention.py` is also included in the image. For Docker deployments, add a host cron/timer or run it manually if you also want periodic report/backup/log retention cleanup.
 
 ## Security notes
 
