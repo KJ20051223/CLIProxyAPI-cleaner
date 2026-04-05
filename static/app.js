@@ -224,6 +224,10 @@ $('#configForm').addEventListener('submit', async (e) => {
     api_call_sleep_max: Number(form.api_call_sleep_max.value),
     revival_wait_days: Number(form.revival_wait_days.value),
     revival_probe_interval_hours: Number(form.revival_probe_interval_hours.value),
+    retention_keep_reports: Number(form.retention_keep_reports.value),
+    retention_report_max_age_days: Number(form.retention_report_max_age_days.value),
+    retention_backup_max_age_days: Number(form.retention_backup_max_age_days.value),
+    retention_log_max_size_mb: Number(form.retention_log_max_size_mb.value),
   };
   try {
     const data = await api('/CLIProxyAPI-cleaner/api/config/save', { method: 'POST', body: payload });

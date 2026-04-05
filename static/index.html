@@ -182,6 +182,22 @@
             复活探测间隔（小时）
             <input name="revival_probe_interval_hours" type="number" min="1" max="168" required>
           </label>
+          <label>
+            报告最多保留多少份
+            <input name="retention_keep_reports" type="number" min="1" max="5000" required>
+          </label>
+          <label>
+            报告最多保留多少天
+            <input name="retention_report_max_age_days" type="number" min="0" max="3650" required>
+          </label>
+          <label>
+            备份最多保留多少天
+            <input name="retention_backup_max_age_days" type="number" min="0" max="3650" required>
+          </label>
+          <label>
+            日志最大保留（MB）
+            <input name="retention_log_max_size_mb" type="number" min="1" max="1024" required>
+          </label>
           <label class="full">
             API Call Body
             <textarea name="api_call_body" rows="5" placeholder="可留空"></textarea>
@@ -190,7 +206,7 @@
             <button type="submit">保存配置</button>
             <span id="configMsg" class="msg"></span>
           </div>
-          <p class="tip full">配置保存后，重启 cleaner 服务才会按新参数真正生效；如果修改了控制台登录密码，重启 web 服务后生效。</p>
+          <p class="tip full">配置保存后，重启 cleaner 服务才会按新参数真正生效；保留参数保存后，下次 retention timer 运行会自动按新值生效；如果修改了控制台登录密码，重启 web 服务后生效。</p>
         </form>
       </section>
 

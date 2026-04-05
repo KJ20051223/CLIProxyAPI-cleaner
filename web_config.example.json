@@ -19,6 +19,10 @@
   "api_call_sleep_max": 10.0,
   "revival_wait_days": 7,
   "revival_probe_interval_hours": 12,
+  "retention_keep_reports": 200,
+  "retention_report_max_age_days": 7,
+  "retention_backup_max_age_days": 14,
+  "retention_log_max_size_mb": 50,
   "password_salt": "generate_me",
   "password_hash": "generate_me"
 }

@@ -13,6 +13,7 @@
 - `common.py`：配置加载、校验、命令拼装
 - `run_cleaner.py`：读取 `web_config.json` 并按当前配置启动 cleaner
 - `cleanup_retention.py`：独立的文件保留清理脚本，负责清理旧报告/备份并裁剪日志
+- `run_retention.sh`：读取 `web_config.json` 中的保留参数，再启动 retention 清理脚本
 - `CLIProxyAPI-cleaner.service`：后台清理服务
 - `CLIProxyAPI-cleaner-web.service`：控制台服务
 - `CLIProxyAPI-cleaner-retention.service` / `.timer`：定时文件清理服务与定时器
@@ -52,6 +53,7 @@
 ├── common.py
 ├── run_cleaner.py
 ├── cleanup_retention.py
+├── run_retention.sh
 ├── CLIProxyAPI-cleaner.service
 ├── CLIProxyAPI-cleaner-web.service
 ├── CLIProxyAPI-cleaner-retention.service
@@ -151,6 +153,10 @@ cp web_config.example.json web_config.json
   "api_call_sleep_max": 10.0,
   "revival_wait_days": 7,
   "revival_probe_interval_hours": 12,
+  "retention_keep_reports": 200,
+  "retention_report_max_age_days": 7,
+  "retention_backup_max_age_days": 14,
+  "retention_log_max_size_mb": 50,
   "password_salt": "replace-with-your-generated-salt",
   "password_hash": "replace-with-your-generated-hash"
 }
@@ -183,12 +189,14 @@ systemctl enable --now CLIProxyAPI-cleaner-retention.timer
 - 备份：删除 `14` 天前的旧备份，并顺手清掉空目录
 - 日志：`/root/CLIProxyAPI-cleaner.log` 和 `web.log` 超过 `50MB` 时自动裁剪，只保留最近内容
 
-如果你想调整这些值，可以直接编辑：
+这些参数现在也可以直接在 **Web 控制台** 里修改；保存后，下一次 retention timer 运行会自动按新的配置值生效。
 
-- `CLIPROXY_KEEP_REPORTS`
-- `CLIPROXY_REPORT_MAX_AGE_DAYS`
-- `CLIPROXY_BACKUP_MAX_AGE_DAYS`
-- `CLIPROXY_LOG_MAX_SIZE_MB`
+如果你想手动编辑配置文件，对应字段是：
+
+- `retention_keep_reports`
+- `retention_report_max_age_days`
+- `retention_backup_max_age_days`
+- `retention_log_max_size_mb`
 
 ## 6）配置 Nginx 反代
 
@@ -348,6 +356,7 @@ CLIPROXY_COOKIE_SECURE: "true"
 3. `CLIPROXY_ALLOWED_HOSTS` 默认是 `*`，为了方便首次启动；正式使用时建议收紧成你自己的域名或 IP。
 4. cleaner 容器启动后会先检查 `web_config.json` 是否已经填了真实的 `base_url / management_key`；如果还是示例值，会先等待，不会真的跑清理逻辑。
 5. `cleanup_retention.py` 也会一并打进镜像；如果你用 Docker，建议在宿主机加 cron / timer，或手动执行它做报告/备份/日志保留清理。
+6. `run_retention.sh` 会优先从 `web_config.json` 读取保留参数，所以 Web 控制台里改完 retention 配置后，下一次定时清理会自动使用新值。
 
 ---
 

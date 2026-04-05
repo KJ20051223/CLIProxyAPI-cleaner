@@ -5,13 +5,10 @@ After=local-fs.target
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/CLIProxyAPI-cleaner
-Environment=CLIPROXY_KEEP_REPORTS=200
-Environment=CLIPROXY_REPORT_MAX_AGE_DAYS=7
-Environment=CLIPROXY_BACKUP_MAX_AGE_DAYS=14
-Environment=CLIPROXY_LOG_MAX_SIZE_MB=50
-ExecStart=/usr/bin/flock -n /tmp/CLIProxyAPI-cleaner-retention.lock /usr/bin/python3 /opt/CLIProxyAPI-cleaner/cleanup_retention.py
+ExecStart=/bin/sh /opt/CLIProxyAPI-cleaner/run_retention.sh
 User=root
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ReadWritePaths=/root /var/log /tmp /opt/CLIProxyAPI-cleaner
+

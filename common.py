@@ -46,6 +46,10 @@ DEFAULT_CONFIG = {
     'api_call_sleep_max': 10.0,
     'revival_wait_days': 7,
     'revival_probe_interval_hours': 12,
+    'retention_keep_reports': 200,
+    'retention_report_max_age_days': 7,
+    'retention_backup_max_age_days': 14,
+    'retention_log_max_size_mb': 50,
     'password_salt': 'dbc9427570ea1646b857e00cb16e76c3',
     'password_hash': '256a47cde3c93b2c5d9d839346af5157930d4fdf86debecf1b979033d365b2c4',
 }
@@ -56,6 +60,10 @@ INT_FIELDS = {
     'api_call_max_per_run': (1, 50),
     'revival_wait_days': (0, 365),
     'revival_probe_interval_hours': (1, 168),
+    'retention_keep_reports': (1, 5000),
+    'retention_report_max_age_days': (0, 3650),
+    'retention_backup_max_age_days': (0, 3650),
+    'retention_log_max_size_mb': (1, 1024),
 }
 FLOAT_FIELDS = {
     'api_call_sleep_min': (0.0, 3600.0),
@@ -150,6 +158,10 @@ def sanitize_config_for_ui(config: dict) -> dict:
         'api_call_sleep_max': config.get('api_call_sleep_max', 10.0),
         'revival_wait_days': config.get('revival_wait_days', 7),
         'revival_probe_interval_hours': config.get('revival_probe_interval_hours', 12),
+        'retention_keep_reports': config.get('retention_keep_reports', 200),
+        'retention_report_max_age_days': config.get('retention_report_max_age_days', 7),
+        'retention_backup_max_age_days': config.get('retention_backup_max_age_days', 14),
+        'retention_log_max_size_mb': config.get('retention_log_max_size_mb', 50),
         'management_key_masked': mask_secret(config.get('management_key', '')),
         'management_key_configured': bool(str(config.get('management_key', '')).strip()),
     }

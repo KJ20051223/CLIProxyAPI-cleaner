@@ -13,6 +13,7 @@ The repository homepage defaults to Chinese. If you prefer Chinese, use the link
 - `common.py`: shared config loading, validation, and command building
 - `run_cleaner.py`: launches the cleaner using the current `web_config.json`
 - `cleanup_retention.py`: standalone retention cleanup for old reports/backups and oversized logs
+- `run_retention.sh`: reads retention settings from `web_config.json` and launches retention cleanup
 - `CLIProxyAPI-cleaner.service`: background cleaner service
 - `CLIProxyAPI-cleaner-web.service`: web console service
 - `CLIProxyAPI-cleaner-retention.service` / `.timer`: periodic artifact cleanup service and timer
@@ -106,12 +107,14 @@ Default retention policy:
 - Backups: delete anything older than `14` days and remove empty directories
 - Logs: trim `/root/CLIProxyAPI-cleaner.log` and `web.log` back to the latest `50MB` when they grow too large
 
-If you want to tune it, edit these environment variables in `CLIProxyAPI-cleaner-retention.service`:
+These values can now be changed directly in the **Web console**. After saving, the next retention timer run automatically uses the new settings.
 
-- `CLIPROXY_KEEP_REPORTS`
-- `CLIPROXY_REPORT_MAX_AGE_DAYS`
-- `CLIPROXY_BACKUP_MAX_AGE_DAYS`
-- `CLIPROXY_LOG_MAX_SIZE_MB`
+If you want to edit the config file manually, the fields are:
+
+- `retention_keep_reports`
+- `retention_report_max_age_days`
+- `retention_backup_max_age_days`
+- `retention_log_max_size_mb`
 
 ### 6. Configure Nginx
 
@@ -265,6 +268,7 @@ CLIPROXY_COOKIE_SECURE: "true"
 3. `CLIPROXY_ALLOWED_HOSTS` defaults to `*` for easier first boot; for real deployment, tighten it to your own hostnames or IPs.
 4. The cleaner process checks whether `web_config.json` already contains real `base_url / management_key` values. If the config is still placeholder-only, it waits instead of running cleanup logic.
 5. `cleanup_retention.py` is also included in the image. For Docker deployments, add a host cron/timer or run it manually if you also want periodic report/backup/log retention cleanup.
+6. `run_retention.sh` reads retention settings from `web_config.json`, so changes saved from the Web console will be picked up automatically on the next scheduled retention run.
 
 ## Security notes
 
