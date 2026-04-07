@@ -363,7 +363,7 @@ CLIPROXY_COOKIE_SECURE: "true"
 
 3. `CLIPROXY_ALLOWED_HOSTS` 默认是 `*`，为了方便首次启动；正式使用时建议收紧成你自己的域名或 IP。
 4. cleaner 容器启动后会先检查 `web_config.json` 是否已经填了真实的 `base_url / management_key`；如果还是示例值，会先等待，不会真的跑清理逻辑。
-5. Docker 模式下控制台现在会显式使用 `/app/docker/supervisord.conf` 调 `supervisorctl`，避免误连系统默认的 `/var/run/supervisor.sock`。
+5. Docker 模式下控制台现在会显式使用 `/app/docker/supervisord.conf` 调 `supervisorctl`，并且 `supervisord.conf` 已启用 `[rpcinterface:supervisor]`，避免误连系统默认 socket 或出现 supervisor namespace 不可用的报错。
 6. 如果 `password_salt / password_hash` 还没配置，登录接口会明确返回“控制台密码尚未配置”，不再抛 500。
 7. `cleanup_retention.py` 也会一并打进镜像；如果你用 Docker，建议在宿主机加 cron / timer，或手动执行它做报告/备份/日志保留清理。
 8. `run_retention.sh` 会优先从 `web_config.json` 读取保留参数，所以 Web 控制台里改完 retention 配置后，下一次定时清理会自动使用新值。

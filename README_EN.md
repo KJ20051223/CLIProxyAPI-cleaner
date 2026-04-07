@@ -274,7 +274,7 @@ CLIPROXY_COOKIE_SECURE: "true"
 
 3. `CLIPROXY_ALLOWED_HOSTS` defaults to `*` for easier first boot; for real deployment, tighten it to your own hostnames or IPs.
 4. The cleaner process checks whether `web_config.json` already contains real `base_url / management_key` values. If the config is still placeholder-only, it waits instead of running cleanup logic.
-5. In Docker mode, the dashboard now calls `supervisorctl` with `/app/docker/supervisord.conf` explicitly, so it will not fall back to `/var/run/supervisor.sock`.
+5. In Docker mode, the dashboard now calls `supervisorctl` with `/app/docker/supervisord.conf` explicitly, and the bundled `supervisord.conf` enables `[rpcinterface:supervisor]`, so it will not fall back to `/var/run/supervisor.sock` or hit the missing supervisor namespace error.
 6. If `password_salt / password_hash` are still unset, the login API now returns a clear configuration error instead of crashing with HTTP 500.
 7. `cleanup_retention.py` is also included in the image. For Docker deployments, add a host cron/timer or run it manually if you also want periodic report/backup/log retention cleanup.
 8. `run_retention.sh` reads retention settings from `web_config.json`, so changes saved from the Web console will be picked up automatically on the next scheduled retention run.
