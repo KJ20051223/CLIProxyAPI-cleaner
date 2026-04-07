@@ -14,6 +14,7 @@
 - `run_cleaner.py`：读取 `web_config.json` 并按当前配置启动 cleaner
 - `cleanup_retention.py`：独立的文件保留清理脚本，负责清理旧报告/备份并裁剪日志
 - `run_retention.sh`：读取 `web_config.json` 中的保留参数，再启动 retention 清理脚本
+- `manager.sh`：交互式安装 / 卸载脚本（systemd + 裸机场景）
 - `CLIProxyAPI-cleaner.service`：后台清理服务
 - `CLIProxyAPI-cleaner-web.service`：控制台服务
 - `CLIProxyAPI-cleaner-retention.service` / `.timer`：定时文件清理服务与定时器
@@ -54,6 +55,7 @@
 ├── run_cleaner.py
 ├── cleanup_retention.py
 ├── run_retention.sh
+├── manager.sh
 ├── CLIProxyAPI-cleaner.service
 ├── CLIProxyAPI-cleaner-web.service
 ├── CLIProxyAPI-cleaner-retention.service
@@ -292,11 +294,6 @@ systemctl daemon-reload
 - Web 控制台里的“启动 / 停止 / 重启 cleaner”在 Docker 模式下会自动改走 `supervisorctl`
 - 默认把配置、日志、报告、备份都放到挂载目录 `./docker-data`
 
-### 快速开始（默认走 Docker Hub 镜像）
-
-```bash
-git clone https://github.com/KJ20051223/CLIProxyAPI-cleaner.git
-cd CLIProxyAPI-cleaner
 ### 快速开始（Docker Hub 镜像）
 
 ```bash
@@ -325,6 +322,12 @@ export CLIPROXY_IMAGE=docker.io/你的DockerHub用户名/cliproxyapi-cleaner:lat
 - `password_salt`
 - `password_hash`
 
+如果你想在**首次启动时**就自动写入这些值，也可以直接在 `docker-compose.yml` 里取消下面几项注释：
+
+- `CLIPROXY_BASE_URL`
+- `CLIPROXY_MANAGEMENT_KEY`
+- `CLIPROXY_CONSOLE_PASSWORD`
+
 访问地址：
 
 ```text
@@ -349,14 +352,6 @@ Compose 默认把这些东西持久化到 `./docker-data`：
 - `backups/`
 - `CLIProxyAPI-cleaner-state.json`
 
-### 访问地址
-
-默认端口映射是：
-
-```text
-http://你的服务器IP:28717/CLIProxyAPI-cleaner/
-```
-
 ### Docker 模式注意事项
 
 1. **本地直连 HTTP** 时，`docker-compose.yml` 默认把 `CLIPROXY_COOKIE_SECURE=false`，这样直接映射端口也能登录。
@@ -372,6 +367,33 @@ CLIPROXY_COOKIE_SECURE: "true"
 6. 如果 `password_salt / password_hash` 还没配置，登录接口会明确返回“控制台密码尚未配置”，不再抛 500。
 7. `cleanup_retention.py` 也会一并打进镜像；如果你用 Docker，建议在宿主机加 cron / timer，或手动执行它做报告/备份/日志保留清理。
 8. `run_retention.sh` 会优先从 `web_config.json` 读取保留参数，所以 Web 控制台里改完 retention 配置后，下一次定时清理会自动使用新值。
+9. `./docker-data/reports` 和 `./docker-data/backups` 都属于运行产物，不建议再提交回 Git 仓库。
+
+## manager.sh（交互式安装脚本）
+
+如果你就是想在 **systemd + 裸机** 上快速部署，现在仓库里提供了一个更稳的 `manager.sh`：
+
+```bash
+chmod +x manager.sh
+sudo ./manager.sh install
+```
+
+它会做这些事：
+
+- 复制当前仓库到 `/opt/CLIProxyAPI-cleaner`
+- 交互式询问 `base_url`、`management_key`、控制台密码
+- 让你选择是 **反代/HTTPS** 模式，还是 **局域网直连 HTTP** 模式
+- 生成 `web_config.json`
+- 通过 systemd override 写入 `CLIPROXY_COOKIE_SECURE=true/false`
+- 安装并启动 cleaner / web / retention timer
+
+它**不会**再像旧 PR 那样直接 `sed` 改 `app.py` 源码，所以升级时不会反复打架。
+
+卸载：
+
+```bash
+sudo ./manager.sh uninstall
+```
 
 ---
 

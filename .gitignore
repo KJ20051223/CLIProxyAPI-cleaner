@@ -3,3 +3,7 @@ __pycache__/
 *.log
 web_config.json
 *.tmp
+docker-data/
+CLIProxyAPI-cleaner-state.json
+backups/cliproxyapi-auth-cleaner/
+reports/cliproxyapi-auth-cleaner/report-*.json

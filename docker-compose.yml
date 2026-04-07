@@ -18,5 +18,9 @@ services:
       CLIPROXY_WEB_LOG_PATH: "/data/logs/web.log"
       CLIPROXY_CLEANER_LOG_PATH: "/data/logs/CLIProxyAPI-cleaner.log"
       CLIPROXY_SUPERVISORCTL_CONFIG: "/app/docker/supervisord.conf"
+      # Optional first-boot helpers. Remove or leave empty after initialization.
+      # CLIPROXY_BASE_URL: "https://example.com/management.html"
+      # CLIPROXY_MANAGEMENT_KEY: "replace-me"
+      # CLIPROXY_CONSOLE_PASSWORD: "change-me-now"
     volumes:
       - ./docker-data:/data

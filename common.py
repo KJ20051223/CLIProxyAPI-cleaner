@@ -13,7 +13,11 @@ STATIC_DIR = APP_DIR / 'static'
 CONFIG_PATH = Path(os.environ.get('CLIPROXY_CONFIG_PATH', str(APP_DIR / 'web_config.json'))).expanduser()
 CLEANER_LOG_PATH = Path(os.environ.get('CLIPROXY_CLEANER_LOG_PATH', '/root/CLIProxyAPI-cleaner.log')).expanduser()
 WEB_LOG_PATH = Path(os.environ.get('CLIPROXY_WEB_LOG_PATH', str(APP_DIR / 'web.log'))).expanduser()
-REPORT_DIR = Path(os.environ.get('CLIPROXY_REPORT_DIR', '/root/reports/cliproxyapi-auth-cleaner')).expanduser()
+REPORT_DIR = Path(
+    os.environ.get('CLIPROXY_REPORT_ROOT')
+    or os.environ.get('CLIPROXY_REPORT_DIR')
+    or str(APP_DIR / 'reports' / 'cliproxyapi-auth-cleaner')
+).expanduser()
 CLEANER_SERVICE = 'CLIProxyAPI-cleaner.service'
 WEB_SERVICE = 'CLIProxyAPI-cleaner-web.service'
 CONTROL_MODE = os.environ.get('CLIPROXY_CONTROL_MODE', 'systemctl').strip().lower() or 'systemctl'

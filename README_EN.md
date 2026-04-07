@@ -14,6 +14,7 @@ The repository homepage defaults to Chinese. If you prefer Chinese, use the link
 - `run_cleaner.py`: launches the cleaner using the current `web_config.json`
 - `cleanup_retention.py`: standalone retention cleanup for old reports/backups and oversized logs
 - `run_retention.sh`: reads retention settings from `web_config.json` and launches retention cleanup
+- `manager.sh`: interactive install / uninstall helper for systemd + bare-metal deployments
 - `CLIProxyAPI-cleaner.service`: background cleaner service
 - `CLIProxyAPI-cleaner-web.service`: web console service
 - `CLIProxyAPI-cleaner-retention.service` / `.timer`: periodic artifact cleanup service and timer
@@ -232,6 +233,12 @@ On first boot, `./docker-data/web_config.json` will be created automatically. Up
 - `password_salt`
 - `password_hash`
 
+If you want to prefill them on the **first boot**, uncomment these optional environment variables in `docker-compose.yml`:
+
+- `CLIPROXY_BASE_URL`
+- `CLIPROXY_MANAGEMENT_KEY`
+- `CLIPROXY_CONSOLE_PASSWORD`
+
 Access URL:
 
 ```text
@@ -256,14 +263,6 @@ Compose persists these files into `./docker-data`:
 - `backups/`
 - `CLIProxyAPI-cleaner-state.json`
 
-### Access URL
-
-By default:
-
-```text
-http://your-server-ip:28717/CLIProxyAPI-cleaner/
-```
-
 ### Notes for Docker mode
 
 1. For plain local HTTP access, `docker-compose.yml` defaults to `CLIPROXY_COOKIE_SECURE=false`, otherwise the login cookie would not work on non-HTTPS connections.
@@ -279,6 +278,33 @@ CLIPROXY_COOKIE_SECURE: "true"
 6. If `password_salt / password_hash` are still unset, the login API now returns a clear configuration error instead of crashing with HTTP 500.
 7. `cleanup_retention.py` is also included in the image. For Docker deployments, add a host cron/timer or run it manually if you also want periodic report/backup/log retention cleanup.
 8. `run_retention.sh` reads retention settings from `web_config.json`, so changes saved from the Web console will be picked up automatically on the next scheduled retention run.
+9. `./docker-data/reports` and `./docker-data/backups` are runtime artifacts; do not commit them back into the repository.
+
+## manager.sh (interactive installer)
+
+If you want a faster **systemd + bare-metal** install path, the repository now includes a safer `manager.sh`:
+
+```bash
+chmod +x manager.sh
+sudo ./manager.sh install
+```
+
+It will:
+
+- copy the current workspace into `/opt/CLIProxyAPI-cleaner`
+- ask for `base_url`, `management_key`, and dashboard password
+- let you choose between **reverse-proxy / HTTPS** mode and **LAN / direct HTTP** mode
+- generate `web_config.json`
+- write `CLIPROXY_COOKIE_SECURE=true/false` via a systemd override instead of patching source code
+- install and start cleaner / web / retention timer
+
+So unlike PR #2, it does **not** `sed`-patch `app.py`, which keeps upgrades and diffs clean.
+
+Uninstall:
+
+```bash
+sudo ./manager.sh uninstall
+```
 
 ## Security notes
 

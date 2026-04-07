@@ -23,6 +23,6 @@
   "retention_report_max_age_days": 7,
   "retention_backup_max_age_days": 14,
   "retention_log_max_size_mb": 50,
-  "password_salt": "generate_me",
-  "password_hash": "generate_me"
+  "password_salt": "",
+  "password_hash": ""
 }
