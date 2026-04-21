@@ -21,7 +21,7 @@ DEFAULT_API_CALL_PROVIDERS = 'codex,openai,chatgpt'
 DEFAULT_API_CALL_URL = 'https://chatgpt.com/backend-api/wham/usage'
 DEFAULT_API_CALL_USER_AGENT = 'Mozilla/5.0 CLIProxyAPI-cleaner/1.0'
 DEFAULT_API_CALL_ACCOUNT_ID = ''
-DEFAULT_API_CALL_MAX_PER_RUN = 9
+DEFAULT_API_CALL_MAX_PER_RUN = 50
 DEFAULT_API_CALL_SLEEP_MIN = 5.0
 DEFAULT_API_CALL_SLEEP_MAX = 10.0
 DEFAULT_REVIVAL_WAIT_DAYS = 7
@@ -332,8 +332,10 @@ def should_probe_api_call(item, args):
     provider = str(item.get('provider') or item.get('type') or '').strip().lower()
     if args.api_call_provider_set and provider not in args.api_call_provider_set:
         return False
+    if bool(item.get('disabled', False)):
+        return False
     initial_kind, _ = classify(item)
-    return initial_kind == 'available'
+    return initial_kind in ('available', 'quota_exhausted')
 
 
 def api_call_item_key(item):
@@ -948,6 +950,10 @@ def run_check(args):
             elif probe.get('classification') == 'quota_exhausted':
                 kind = 'quota_exhausted'
                 reason = probe.get('reason') or reason
+            elif kind == 'quota_exhausted':
+                kind = 'available'
+                reason = probe.get('reason') or 'api-call probe ok'
+                row['probe_override'] = 'cleared_quota_exhausted'
 
         row['final_classification'] = kind
         row['reason'] = reason
@@ -955,6 +961,10 @@ def run_check(args):
 
         if kind == 'available':
             counts['可用账号'] += 1
+            if row.get('probe_override') == 'cleared_quota_exhausted':
+                print('[api-call纠偏] %s provider=%s 通过主动探测确认仍可用，跳过自动禁用' % (
+                    name, provider,
+                ), flush=True)
             if name and not bool(item.get('disabled')) and clear_quota_state(state, name):
                 counts['状态清理'] += 1
                 row['state_cleared'] = 'became_available'
@@ -1126,7 +1136,7 @@ def build_parser():
     ap.add_argument('--api-call-user-agent', default=os.environ.get('CLIPROXY_API_CALL_USER_AGENT', DEFAULT_API_CALL_USER_AGENT), help='主动探测时附带的 User-Agent')
     ap.add_argument('--api-call-body', default=os.environ.get('CLIPROXY_API_CALL_BODY', ''), help='主动探测时透传到 api-call/直连测活的 data 字段')
     ap.add_argument('--api-call-providers', default=os.environ.get('CLIPROXY_API_CALL_PROVIDERS', DEFAULT_API_CALL_PROVIDERS), help='哪些 provider 需要做 /api-call 主动探测，逗号分隔；留空表示全部')
-    ap.add_argument('--api-call-max-per-run', type=int, default=int(os.environ.get('CLIPROXY_API_CALL_MAX_PER_RUN', str(DEFAULT_API_CALL_MAX_PER_RUN))), help='每批最多探测多少个账号，最大 9')
+    ap.add_argument('--api-call-max-per-run', type=int, default=int(os.environ.get('CLIPROXY_API_CALL_MAX_PER_RUN', str(DEFAULT_API_CALL_MAX_PER_RUN))), help='每批最多探测多少个账号，最大 50')
     ap.add_argument('--api-call-sleep', type=float, default=None, help='固定批次等待秒数；如不设置则使用随机等待')
     ap.add_argument('--api-call-sleep-min', type=float, default=float(os.environ.get('CLIPROXY_API_CALL_SLEEP_MIN', str(DEFAULT_API_CALL_SLEEP_MIN))), help='批次随机等待最小秒数')
     ap.add_argument('--api-call-sleep-max', type=float, default=float(os.environ.get('CLIPROXY_API_CALL_SLEEP_MAX', str(DEFAULT_API_CALL_SLEEP_MAX))), help='批次随机等待最大秒数')

@@ -135,8 +135,17 @@
             <input name="console_password" type="password" minlength="8" placeholder="如需修改再填写，至少 8 位">
           </label>
           <label>
-            轮询间隔（秒）
-            <input name="interval" type="number" min="10" max="86400" required>
+            轮询间隔
+            <input name="interval" type="hidden">
+            <div class="inline-fields">
+              <input name="interval_display" type="number" min="1" max="168" step="1" required>
+              <select name="interval_unit" aria-label="轮询间隔单位">
+                <option value="seconds">秒</option>
+                <option value="minutes">分钟</option>
+                <option value="hours">小时</option>
+              </select>
+            </div>
+            <small id="intervalHint" class="field-tip">支持按秒、分钟或小时编辑，保存时会自动换算为秒。</small>
           </label>
           <label class="checkbox soft-box">
             <input name="enable_api_call_check" type="checkbox">

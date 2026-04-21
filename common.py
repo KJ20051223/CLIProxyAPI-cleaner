@@ -61,7 +61,7 @@ DEFAULT_CONFIG = {
 
 BOOL_FIELDS = {'enable_api_call_check'}
 INT_FIELDS = {
-    'interval': (10, 86400),
+    'interval': (10, 604800),
     'api_call_max_per_run': (1, 50),
     'revival_wait_days': (0, 365),
     'revival_probe_interval_hours': (1, 168),

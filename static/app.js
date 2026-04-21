@@ -45,11 +45,108 @@ function clearConfigFormDirty() {
   if (form) form.dataset.dirty = '0';
 }
 
+const INTERVAL_UNITS = {
+  seconds: { seconds: 1, label: '秒', min: 10, max: 604800, step: 1 },
+  minutes: { seconds: 60, label: '分钟', min: 10 / 60, max: 10080, step: 'any' },
+  hours: { seconds: 3600, label: '小时', min: 10 / 3600, max: 168, step: 'any' },
+};
+const MAX_INTERVAL_SECONDS = 604800;
+
+function pickIntervalUnit(seconds) {
+  const safe = Number(seconds) > 0 ? Number(seconds) : 60;
+  if (safe % 3600 === 0) return 'hours';
+  if (safe % 60 === 0) return 'minutes';
+  return 'seconds';
+}
+
+function syncIntervalEditorConstraints() {
+  const form = $('#configForm');
+  if (!form) return;
+  const display = form.elements.namedItem('interval_display');
+  const unit = form.elements.namedItem('interval_unit');
+  if (!display || !unit) return;
+  const meta = INTERVAL_UNITS[unit.value] || INTERVAL_UNITS.seconds;
+  display.min = String(meta.min);
+  display.max = String(meta.max);
+  display.step = String(meta.step);
+}
+
+function formatIntervalDisplayValue(seconds, unitName) {
+  const meta = INTERVAL_UNITS[unitName] || INTERVAL_UNITS.seconds;
+  const value = Number(seconds) / meta.seconds;
+  if (!Number.isFinite(value)) return '';
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)));
+}
+
+function updateIntervalHint() {
+  const form = $('#configForm');
+  const hint = $('#intervalHint');
+  if (!form || !hint) return;
+  const display = form.elements.namedItem('interval_display');
+  const unit = form.elements.namedItem('interval_unit');
+  const hidden = form.elements.namedItem('interval');
+  if (!display || !unit || !hidden) return;
+  const seconds = Number(hidden.value);
+  const meta = INTERVAL_UNITS[unit.value] || INTERVAL_UNITS.seconds;
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    hint.textContent = '支持按秒、分钟或小时编辑，保存时会自动换算为秒。';
+    return;
+  }
+  hint.textContent = `当前为 ${display.value || 0} ${meta.label}，实际保存 ${seconds} 秒。`;
+}
+
+function syncIntervalHiddenField() {
+  const form = $('#configForm');
+  if (!form) return 0;
+  const display = form.elements.namedItem('interval_display');
+  const unit = form.elements.namedItem('interval_unit');
+  const hidden = form.elements.namedItem('interval');
+  if (!display || !unit || !hidden) return 0;
+  const displayValue = Number(display.value);
+  const meta = INTERVAL_UNITS[unit.value] || INTERVAL_UNITS.seconds;
+  const seconds = Number.isFinite(displayValue) ? Math.round(displayValue * meta.seconds) : 0;
+  hidden.value = seconds > 0 ? String(seconds) : '';
+  updateIntervalHint();
+  return seconds;
+}
+
+function syncIntervalEditor(seconds) {
+  const form = $('#configForm');
+  if (!form) return;
+  const display = form.elements.namedItem('interval_display');
+  const unit = form.elements.namedItem('interval_unit');
+  const hidden = form.elements.namedItem('interval');
+  if (!display || !unit || !hidden) return;
+  const safe = Number(seconds) > 0 ? Number(seconds) : 60;
+  const pickedUnit = pickIntervalUnit(safe);
+  const meta = INTERVAL_UNITS[pickedUnit];
+  hidden.value = String(safe);
+  unit.value = pickedUnit;
+  display.value = formatIntervalDisplayValue(safe, pickedUnit);
+  syncIntervalEditorConstraints();
+  updateIntervalHint();
+}
+
+function handleIntervalUnitChange() {
+  const form = $('#configForm');
+  if (!form) return;
+  const display = form.elements.namedItem('interval_display');
+  const unit = form.elements.namedItem('interval_unit');
+  const hidden = form.elements.namedItem('interval');
+  if (!display || !unit || !hidden) return;
+  const currentSeconds = Number(hidden.value) || syncIntervalHiddenField();
+  syncIntervalEditorConstraints();
+  display.value = formatIntervalDisplayValue(currentSeconds, unit.value);
+  hidden.value = currentSeconds > 0 ? String(currentSeconds) : '';
+  updateIntervalHint();
+}
+
 function syncConfigForm(cfg = {}) {
   const form = $('#configForm');
   if (!form || isConfigFormDirty()) return;
 
   Object.entries(cfg).forEach(([key, value]) => {
+    if (key === 'interval') return;
     const el = form.elements.namedItem(key);
     if (!el) return;
     if (el.type === 'checkbox') {
@@ -58,6 +155,7 @@ function syncConfigForm(cfg = {}) {
       el.value = value ?? '';
     }
   });
+  syncIntervalEditor(cfg.interval);
 }
 
 function servicePill(label, active, desc = '') {
@@ -228,14 +326,21 @@ $('#logoutBtn').addEventListener('click', async () => {
 
 const configForm = $('#configForm');
 configForm.addEventListener('input', markConfigFormDirty);
+configForm.addEventListener('change', markConfigFormDirty);
+configForm.elements.namedItem('interval_display')?.addEventListener('input', syncIntervalHiddenField);
+configForm.elements.namedItem('interval_unit')?.addEventListener('change', handleIntervalUnitChange);
+clearConfigFormDirty();
+syncIntervalEditorConstraints();
+syncIntervalHiddenField();
 configForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
+  const intervalSeconds = syncIntervalHiddenField();
   const payload = {
     base_url: form.base_url.value,
     management_key: form.management_key.value,
     console_password: form.console_password.value,
-    interval: Number(form.interval.value),
+    interval: intervalSeconds,
     enable_api_call_check: form.enable_api_call_check.checked,
     api_call_url: form.api_call_url.value,
     api_call_method: form.api_call_method.value,
@@ -254,6 +359,9 @@ configForm.addEventListener('submit', async (e) => {
     retention_log_max_size_mb: Number(form.retention_log_max_size_mb.value),
   };
   try {
+    if (!Number.isFinite(intervalSeconds) || intervalSeconds < 10 || intervalSeconds > MAX_INTERVAL_SECONDS) {
+      throw new Error('轮询间隔需在 10 秒到 168 小时之间');
+    }
     const data = await api('/CLIProxyAPI-cleaner/api/config/save', { method: 'POST', body: payload });
     setMessage($('#configMsg'), data.message || '配置已保存', true);
     form.management_key.value = '';

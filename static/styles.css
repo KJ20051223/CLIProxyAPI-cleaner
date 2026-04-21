@@ -202,7 +202,7 @@ label {
   color: var(--muted);
   font-size: 14px;
 }
-input, textarea {
+input, textarea, select {
   width: 100%;
   padding: 13px 14px;
   border-radius: 18px;
@@ -215,11 +215,21 @@ input, textarea {
 input::placeholder, textarea::placeholder {
   color: #7e88a1;
 }
-input:focus, textarea:focus {
+input:focus, textarea:focus, select:focus {
   border-color: rgba(102,179,255,0.55);
   box-shadow: 0 0 0 4px rgba(10,132,255,0.18);
 }
 textarea { resize: vertical; }
+.inline-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr);
+  gap: 10px;
+}
+.field-tip {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
 
 button {
   border: none;
@@ -457,6 +467,7 @@ button:disabled {
   .report-item { grid-template-columns: 1fr; }
   .report-inline-summary { justify-content: flex-start; }
   .button-row { flex-direction: column; align-items: stretch; }
+  .inline-fields { grid-template-columns: 1fr; }
   button { width: 100%; }
   .modal {
     align-items: flex-end;
